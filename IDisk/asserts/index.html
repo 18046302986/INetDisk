@@ -1,0 +1,821 @@
+﻿<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="layui/jquery-3.2.1.min.js"></script>
+    <script src="layui/layui.js"></script>
+    <script src="util/DateUtil.js"></script>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        .layui-layout-admin .layui-logo {
+            width: 140px;
+        }
+        .layui-layout-left {
+            left: 140px;
+        }
+        .layui-layout-admin .layui-side {
+            top: 60px;
+            width: 140px;
+        }
+        .layui-body {
+            position: absolute;
+            left: 140px;
+        }
+    </style>
+</head>
+<body  class="layui-layout-body">
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo">文件管理器</div>
+        <!-- 头部区域（可配合layui已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li class="layui-nav-item  layui-this "><a href="javascript:void(0)" id="myCloud">我的网盘</a></li>
+            <li class="layui-nav-item"><a href="javascript:void(0)" id="transfer-list">传输列表</a></li>
+        </ul>
+
+		<ul class="layui-nav layui-layout-right">
+			<li class="layui-nav-item cloud-type layui-this" data-val="0" ><a href="javascript:void(0)">百度云</a></li>
+			<li class="layui-nav-item cloud-type" data-val="1" ><a href="javascript:void(0)">腾讯云</a></li>
+		 </ul>
+    </div>
+
+    <div class="layui-side layui-bg-black right-menus">
+        <div class="layui-side-scroll">
+            <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+            <ul class="layui-nav layui-nav-tree" style="display:none;"  id="transfer-menu" lay-filter="test">
+                <li class="layui-nav-item downloading  "><a href="javascript:void(0)">正在下载</a></li>
+               
+                <li class="layui-nav-item transfer-done "><a href="javascript:void(0)">传输完成</a></li>
+            </ul>
+
+            <ul class="layui-nav layui-nav-tree" id="mycloud-menu" lay-filter="test">
+                <li class="layui-nav-item all-file  "><a href="javascript:void(0)">待下载</a></li>
+                <li class="layui-nav-item setting"><a href="javascript:void(0)">设置</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body">
+        <!-- 内容主体区域 -->
+        <div style="padding: 15px;">
+            <div class="table-block allfile-block">
+                <table id="allFile" lay-filter="allfile">
+                </table>
+            </div>
+
+            <div class="table-block donwloadDone-block">
+                <table id="donwloadDone"  lay-filter="downloaDone">
+                </table>
+            </div>
+            <div class="table-block downloading-block">
+                <table id="downloading"  lay-filter="downloading">
+                </table>
+            </div>
+          
+
+            <div class="table-block setting-form">
+                <form class="layui-form" lay-filter="setting" onsubmit="return false;">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">accessKeyId</label>
+                        <div class="layui-input-block">
+							<input type="hidden" name="Id" >
+                            <input type="text" name="AccessKeyId" required  lay-verify="required" placeholder="请输入accessKeyId" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">accessKey</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="AccessKey" required lay-verify="required" placeholder="请输入accessKey" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">bucketName</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="BucketName" required lay-verify="required" placeholder="请输入bucketName" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+					 <div class="layui-form-item tencent-AppId  " style="display:none;">
+                        <label class="layui-form-label">AppId</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="AppId" placeholder="请输入AppId" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">所在区域</label>
+                        <div class="layui-input-block">
+                            <select name="Endpoint" lay-verify="required">
+                                
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button class="layui-btn" lay-submit lay-filter="editBosConfig">确定</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+ 
+</div>
+<script type="text/html" id="tencent-select">
+	<option class="baiducloud" value=""></option>
+	<option class="tencencloud" value="ap-chengdu">成都</option>
+	<option class="tencencloud" value="ap-beijing">北京</option>
+	<option class="tencencloud" value="ap-guangzhou">广州</option>
+	<option class="tencencloud" value="ap-shanghai">上海</option>
+	<option class="tencencloud" value="ap-shanghai-fsi">上海金融</option>
+	<option class="tencencloud" value="ap-shenzhen-fsi">深圳金融</option>
+	<option class="tencencloud" value="ap-chongqing">重庆</option>
+</script>
+<script type="text/html" id="baidu-select">
+<option class="baiducloud" value=""></option>
+  <option class="baiducloud" value="http://bj.bcebos.com">北京</option>
+        <option class="baiducloud" value="http://sh.bcebos.com">上海</option>
+        <option class="baiducloud" value="http://gz.bcebos.com">广州</option>
+        <option class="baiducloud" value="http://sz.bcebos.com">深圳</option>
+        <option class="baiducloud" value="http://hz.bcebos.com">杭州</option>
+</script>
+
+      
+
+<script>
+    //JavaScript代码区域
+    layui.use(['element','table','layer','form'], function(){
+        var element = layui.element;
+        table = layui.table;
+		layer=layui.layer;
+		form=layui.form;
+        //$(".all-file").trigger("click");
+
+		form.on('submit(editBosConfig)', function(data){
+		 let result=my.editBosConfig([data.field.AccessKeyId,data.field.AccessKey,data.field.BucketName,data.field.Endpoint,parseInt(data.field.Id),data.field.AppId]); //当前容器的全部表单字段，名值对形式：{name: value}
+		 let dataJson=toJson(result);
+		 if(dataJson.State==3||dataJson.State==4){
+			toSetting(dataJson.State);
+		 }else{
+			layer.msg("配置成功！");
+		 }
+		 return false; //阻止表单跳转。如果需要表单跳转，去掉这段即可。
+		});
+
+		  //头工具栏事件
+		 table.on('toolbar(downloading)', function(obj){
+			var checkStatus = table.checkStatus(obj.config.id);
+			switch(obj.event){
+			   case 'pause':
+				var data = checkStatus.data; 
+
+				 let pauseSize=1;
+				 let pauseArr=[];
+				 for(let item in data){
+					let id=parseInt(data[item].Id);
+					let $pauseBtnObj=$(".toggleDownloadStates"+id);
+					let state=parseInt($pauseBtnObj.data("state"));
+					if(state==0){
+						pauseArr[pauseSize]=id;
+						$pauseBtnObj.text("继续下载");
+						$pauseBtnObj.data("state",1)
+						pauseSize++;
+					}
+				 }
+				 pauseArr[0]=1;
+				 if(pauseSize==1){
+					layer.msg("请选择需要暂停的任务");
+					return;
+				 }
+				 my.toggerDownloadStates(pauseArr);
+				 
+			   break;
+			   case 'start':
+				 var data = checkStatus.data; 
+				 let startSize=1;
+				 let startArr=[];
+				 for(let item in data){
+					let id=parseInt(data[item].Id);
+					let $pauseBtnObj=$(".toggleDownloadStates"+id);
+					let state=parseInt($pauseBtnObj.data("state"));
+					if(state==1){
+						startArr[startSize]=id;
+						$pauseBtnObj.text("暂停");
+						$pauseBtnObj.data("state",0)
+						startSize++;
+					}
+				 }
+				  if(startSize==1){
+					layer.msg("请选择需要继续下载的任务");
+					return;
+				 }
+				 startArr[0]=0;
+				 my.toggerDownloadStates(startArr);
+			   break;
+			   case 'delete':
+				var data = checkStatus.data;
+				 
+				 let length=0;
+				 let arr=[];
+				 for(let item in data){
+					arr[length]=data[item].Id;
+					length++;
+				 }
+		 
+				if(length==0){
+					layer.msg("请选择需要删除的记录");
+					return;
+				}
+
+				 my.deleteDownloadRecords(arr);
+
+				 layer.msg("删除成功");
+
+				 loadDownloading(1);
+
+			  break;
+			};
+		 });
+
+		  table.on('toolbar(downloaDone)', function(obj){
+			var checkStatus = table.checkStatus(obj.config.id);
+			switch(obj.event){
+			  case 'delete':
+				var data = checkStatus.data;
+				 
+				 let length=0;
+				 let arr=[];
+				 for(let item in data){
+					arr[length]=data[item].Id;
+					length++;
+				 }
+		 
+				if(length==0){
+					layer.msg("请选择需要删除的记录");
+					return;
+				}
+
+				 my.deleteDownloadRecords(arr);
+
+				 layer.msg("删除成功");
+
+				 loadDowndone(1);
+
+			  break;
+			};
+		 });
+		 table.on('toolbar(allfile)', function(obj){
+			var checkStatus = table.checkStatus(obj.config.id);
+			switch(obj.event){
+			  case 'download':
+				var data = checkStatus.data;
+				let arr=[];
+				let length=1;
+				for(let item in data){
+					arr[length]=parseInt(data[item].Id);
+					length++;
+				}
+				arr[0]=length;
+				if(length==1){
+					layer.msg("请选择文件");
+					return;
+				}
+				let result=my.addDownloadRecords(arr);
+				let dataJson=toJson(result);
+				if(parseInt(result[1])==0){
+					layer.msg("正在下载中");
+				}
+			  break;
+			};
+		 });
+    });
+
+
+	function initAllFile(){
+
+	  if(typeof table!="undefined"){
+		  selectRightMenuItem(".all-file");
+	  }else{
+		  setTimeout(function(){ $(".all-file").trigger("click")}, 500);
+	  }
+	}
+
+	
+	function toJson(arr,sub){
+		if(!sub){
+			sub=0;
+		}
+		return eval('('+arr[sub]+')');
+	}
+
+    $(function(){
+        //我的网盘
+        $("#myCloud").click(function(){
+            $("#mycloud-menu").show();
+            $("#transfer-menu").hide();
+
+            selectRightMenuItem(".all-file");
+        })
+        //传输列表
+        $("#transfer-list").click(function(){
+            $("#mycloud-menu").hide();
+            $("#transfer-menu").show();
+
+            selectRightMenuItem(".downloading");
+        })
+        //配置
+        $(".setting").click(function(){
+            renderSettingForm();
+        })
+        //传输完成
+        $(".transfer-done").click(function(){
+			loadDowndone(1);
+        })
+        //正在下载
+        $(".downloading").click(function(){
+			loadDownloading(1);
+        })
+ 
+        //全部文件
+        $(".all-file").click(function(){
+		   loadAllfile(1);
+        })
+
+		$(".cloud-type").click(function(){
+			$(".cloud-type").removeClass("layui-this");
+			$(this).addClass("layui-this");
+			my.changeConstantCloudType([parseInt($(this).data("val"))]);
+
+
+			if($(".setting").hasClass("layui-this")){
+				renderSettingForm();
+			}else if($(".all-file").hasClass("layui-this")){
+				loadAllfile(1);
+			}else if($(".transfer-done").hasClass("layui-this")){
+				loadDowndone(1);
+			}else if($(".downloading").hasClass("layui-this")){
+				loadDownloading(1);
+			}
+
+		})
+    })
+
+
+	/**
+	* 分页加载正在下载的文件
+	*/
+	function loadDownloading(pageNum){
+		if(!pageNum){
+			pageNum=0;
+		}
+	  	let result = my.listDownloadRecord([0,pageNum,15]);
+		let dataJson=toJson(result);
+		renderDownloading({
+			code: dataJson.State,
+			count: parseInt(dataJson.Data.TotalSize),
+			data: dataJson.Data.List,
+			msg: dataJson.Msg,
+			pageNum:pageNum
+		});
+	}
+
+	/**
+	* 分页加载已经传输完成的文件
+	*/
+	function loadDowndone(pageNum){
+		let result = my.listDownloadRecord([1,pageNum,15]);
+		let dataJson=toJson(result);
+        renderTransferDoneList({
+            code: dataJson.State,
+            count:parseInt(dataJson.Data.TotalSize),
+            data: dataJson.Data.List,
+            msg: dataJson.Msg,
+			pageNum:pageNum
+        });
+	}
+
+	/**
+	* 加载所有文件
+	*/
+	function loadAllfile(pageNum){
+		if(!pageNum){
+			pageNum=1;
+		}
+		let result= my.getArrayFromCSharp([pageNum,15]);
+		let dataJson=eval('('+result[0]+')');
+			
+		if(dataJson.State==3||dataJson.State==4){
+			toSetting(dataJson.State);
+			return;
+		}
+
+		if(!dataJson.Data){
+			dataJson.Data={};
+		}
+
+        renderAllfile({
+            code: dataJson.State,
+            count: parseInt(dataJson.Data.TotalSize),
+			pageNum:pageNum,
+            data: dataJson.Data.List,
+            msg: dataJson.Msg
+        });
+	}
+
+	//打开所在文件夹
+	function openDownloadFileFolder(path){
+		my.openDownloadFileFolder([path]);
+	}
+
+	/**
+	*  切换下载状态
+	*/
+	function toggerDownloadState(obj,state){
+		let id=$(obj).data("id");
+		if(!state){
+			state=parseInt($(obj).data("state"));
+		}
+		if(state==0){
+			state=1;
+		}else if(state==4){
+			state=4;
+		}else{
+			state=0;
+		}
+ 
+		my.toggerDownloadState([parseInt(id),state]);
+
+		if(state==1){
+		  $(obj).text("继续下载");
+		}else if(state==0){
+		  $(obj).text("暂停");
+		}
+		$(obj).data("state",state);
+	}
+
+	/**
+	* 当下载进度改变时的回调
+	*/
+	function changeDownloadPercent(data){
+	    data=eval('('+data+')');;
+		console.log("下载进度更新：");
+		let size=parseInt(data.DownloadSize);
+		let time=parseFloat(data.Time);
+		time=Math.round(time*10)/10;
+
+		let id=data.Id;
+
+		let allSize=parseInt($("#download-record-"+id).data("size"));
+
+		$("#download-record-"+id).text(percent(size,allSize)+"%");
+
+		if(time==0||isNaN(time)){
+			time=1;
+		}
+		let speed=size/time/1024/1024;
+
+		if(isNaN(speed)){
+			speed=0;
+		}
+ 
+		if(time>60){
+			$(".download-record-time-"+id).text( Math.round((time)/60));
+			$(".download-record-time-"+id).next().text("分钟");
+		}else{
+			$(".download-record-time-"+id).text(time);
+			$(".download-record-time-"+id).next().text("秒");
+		}
+	 
+
+		
+
+		$(".download-record-speed-"+id).text(Math.round(speed*10)/10);
+	}
+
+	/**
+	* 下载完成的回调
+	*/
+	function downloadDone(data){
+		data=eval('('+data+')');;
+	   $(".toggleDownloadStates"+data.Id).remove();
+	}
+
+	/**
+	* 文件不存在时的回调
+	*/
+	function downloadMiss(data){
+		data=eval('('+data+')');;
+		$(".toggleDownloadStates"+data.Id).before("<span style='color:red;'>文件错误</span>");
+		$(".toggleDownloadStates"+data.Id).remove();
+	}
+	
+	/**
+	* 开始下载文件
+	*/
+	function download(id){
+		let result=my.addDownloadRecord([parseInt(id)]);
+		let dataJson=toJson(result);
+		if(parseInt(dataJson.State)==0&&parseInt(result[1])==0){
+			layer.msg("正在下载中");
+		}else if(parseInt(result[1])==0){
+			layer.msg(dataJson.Msg);
+		}
+	}
+	/**
+	* 跳转至配置页
+	*/
+	function toSetting(state){
+	    let toSettingIndex=layer.open({
+			content:parseInt(state)==3? '配置信息不完善，请填写后使用':'配置信息错误，请检查后重新提交',
+			yes: function(index, layero){
+			layer.close(toSettingIndex); //如果设定了yes回调，需进行手工关闭
+
+			if(!$(".setting").hasClass("layui-this")){
+				selectRightMenuItem(".setting");
+			}
+			},closeBtn :0
+		});        
+	}
+	/**
+	* 同步网盘最新数据
+	*/
+	function refresh(){
+		refreshIndex=layer.msg('加载中', {
+		  icon: 16
+		  ,shade: 0.01,
+		  time:false
+		});
+		 let result=my.refreshCloudFile();
+		 let dataJson=eval('('+result[0]+')');
+		 
+		 renderAllfile({
+            code: dataJson.State,
+            count: dataJson.Data.TotalSize,
+            data: dataJson.Data.List,
+            msg: dataJson.Msg
+         });
+		layer.close(refreshIndex);
+	}
+	
+    function renderSettingForm(){
+		var result=my.getBosConfig();
+		var json=eval('('+result[0]+')');
+		$("select[name='Endpoint']").empty();
+		if(json.Data.Type==0||!json.Data.Type){
+			$("select[name='Endpoint']").append($("#baidu-select").html());
+			$(".tencent-AppId").hide();
+		}else{
+			$("select[name='Endpoint']").append($("#tencent-select").html());
+			$(".tencent-AppId").show();
+		}
+		form.render();
+		form.val("setting", json.Data)
+		
+	    showTable(".setting-form");
+    }
+ 
+ 
+	function percent(divisorm,dividend){
+		let percent= Math.round(divisorm/dividend*100);
+		if(percent>100){
+			percent=100;
+		}
+		return percent;
+	}
+
+    /**
+     * 选中右侧目录
+     * @param selector
+     */
+    function selectRightMenuItem(selector){
+        $(".right-menus li").removeClass("layui-this");
+        $(selector).trigger("click");
+        $(selector).addClass("layui-this");
+    }
+
+	function deletedDownloadRecord(id){
+		my.deleteDownloadRecords([id]);
+		layer.msg("删除成功");
+		
+		if($(".transfer-done").hasClass("layui-this")){
+			loadDowndone(1);
+		}else{
+			loadDownloading(1);
+		}
+	}
+
+    /**
+     *
+     * @param
+     */
+    function showTable(selector){
+        $(".table-block").hide();
+        $(selector).show();
+    }
+
+    /**
+     * 渲染正在下载的文件列表
+     *
+     */
+    function renderDownloading(data){
+        showTable(".downloading-block");
+        table.render({
+            elem: '#downloading',
+            data:data.data
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'FileName', title:'影片名称', fixed: 'left', templet: function(res){
+                    return res.FileName;
+			    }}
+                ,{field:'CloudFile.Size', title:'文件大小(GB)', width:120,sort: true,templet: function(res){
+                   res.Size=res.CloudFile.Size;
+				   if(res.Size/1024/1024/1024>1){
+						return Math.round(res.Size/1024/1024/1024*100)/100 +"GB";
+					}else if(res.Size/1024/1024>1){
+						return  Math.round(res.Size/1024/1024*100)/100 +"MB";
+					}
+                    return  Math.round(res.Size/1024*100)/100 +"KB";
+			    }}
+                ,{field:'progress', title:'下载进度', width:120,  templet: function(res){
+                    return '<em id="download-record-'+res.Id+'" data-size="'+res.CloudFile.Size+'">'+ percent(res.DownloadSize,res.CloudFile.Size) +'%</em>'
+                }}
+                ,{field:'speed', title:'平均速度', width:100,  templet:function(res){
+					if(res.Time==0){
+						res.Time=1;
+					}
+					let speed=res.DownloadSize/res.Time/1024/1024;
+					if(isNaN(speed)){
+						speed=0;
+					}
+                    return '<span class="download-record-speed-'+res.Id+'">'+Math.round(speed*10)/10+'</span>'+'M/s';
+                }}
+                ,{field:'Time', title:'下载用时', width:100,templet:function(res){
+					if(res.Time>60){
+					 return  '<span class="download-record-time-'+res.Id+'">'+  Math.round(res.Time/60)+'</span>'+"<span>分钟</span>";
+					}
+
+					if(res.Time==0){
+						res.Time=1;
+					}
+                   	return   '<span class="download-record-time-'+res.Id+'">'+  res.Time+'</span>'+"<span>秒</span>";
+                }}
+                ,{fixed: 'right', title:'操作',width:140, templet: function(res){
+					let returnHtml="";
+
+					if(res.DownloadState!=3){
+						returnHtml+= '<button class="layui-btn layui-btn-xs toggleDownloadStates'+res.Id+'" onclick="toggerDownloadState(this)" data-id="'+res.Id+'" data-state="'+res.DownloadState+'">'+(res.DownloadState==0?'暂停':'继续下载')+'</button>';
+					}else{
+						returnHtml+='<span style="color:red;">文件错误</span>';
+					}
+					returnHtml+='<button class="layui-btn layui-btn-xs"  onclick="deletedDownloadRecord('+res.Id+')">删除</button>';
+                    return returnHtml
+                }}
+            ]]
+            ,page: {
+				limit:15,
+				limits:[15],
+				count:data.count,
+				curr:data.pageNum,
+				jump: function(obj, first){
+					//首次不执行
+					if(!first){
+					   loadDownloading(obj.curr);
+					}
+				}
+			}  ,toolbar: '#downLoadingToolBar'
+            ,defaultToolbar:[]
+        });
+    }
+
+ 
+    /**
+     * 渲染传输完成的记录
+     * @param data
+     */
+    function renderTransferDoneList(data){
+        showTable(".donwloadDone-block");
+        table.render({
+             elem: '#donwloadDone',
+             data:data.data
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'FileName', title:'影片名称', fixed: 'left', templet: function(res){
+                    return res.FileName;
+			    }}
+                ,{field:'CloudFile.Size', title:'文件大小(GB)', width:140,sort: true,templet: function(res){
+                    res.Size=res.CloudFile.Size;
+					if(res.Size/1024/1024/1024>1){
+						return Math.round(res.Size/1024/1024/1024*100)/100 +"GB";
+					}else if(res.Size/1024/1024>1){
+						return  Math.round(res.Size/1024/1024*100)/100 +"MB";
+					}
+                    return  Math.round(res.Size/1024*100)/100 +"KB";
+			    }}
+                ,{field:'progress', title:'下载进度', width:120, templet: function(res){
+                    return '<em>'+ percent(res.DownloadSize,res.CloudFile.Size) +'%</em>'
+                }}
+                 ,{field:'speed', title:'平均速度', width:100,  templet:function(res){
+					if(res.Time==0){
+						res.Time=1;
+					}
+					let speed=res.DownloadSize/res.Time/1024/1024;
+					if(isNaN(speed)){
+						speed=0;
+					}
+                    return '<span class="download-record-speed-'+res.Id+'">'+Math.round(speed*10)/10+'</span>'+'M/s';
+                }}
+                ,{field:'Time', title:'下载用时', width:100,templet:function(res){
+							if(res.Time>60){
+					 return  '<span class="download-record-time-'+res.Id+'">'+  Math.round(res.Time/60)+'</span>'+"<span>分钟</span>";
+					}
+
+					if(res.Time==0){
+						res.Time=1;
+					}
+                   	return   '<span class="download-record-time-'+res.Id+'">'+  res.Time+'</span>'+"<span>秒</span>";
+                }}
+                ,{fixed: 'right', title:'操作',width:200, templet: function(res){
+                    return '<button class="layui-btn layui-btn-xs " onclick="deletedDownloadRecord('+res.Id+')">删除</button>'
+					 +'<button class="layui-btn layui-btn-xs " onclick="openDownloadFileFolder('+res.Id+')">打开所在文件夹</button>'
+                }}
+            ]]
+            ,page: {
+				limit:15,
+				limits:[15],
+				count:data.count,
+				curr:data.pageNum,
+				jump: function(obj, first){
+					//首次不执行
+					if(!first){
+					   loadDowndone(obj.curr);
+					}
+				}
+			} 
+            ,toolbar: '#transferDoneToolBar'
+            ,defaultToolbar:[]
+        });
+    }
+	 
+	 
+    /**
+     * 渲染全部文件列表
+     * @param data
+     */
+    function renderAllfile(data){
+        showTable(".allfile-block");
+        table.render({
+            elem: '#allFile',
+            data:data.data,
+            cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'Key', title:'影片名称', fixed: 'left',sort: true}
+                ,{field:'Size', title:'文件大小', width:150,sort: true,templet: function(res){
+					if(res.Size/1024/1024/1024>1){
+						return Math.round(res.Size/1024/1024/1024*100)/100 +"GB";
+					}else if(res.Size/1024/1024>1){
+						return  Math.round(res.Size/1024/1024*100)/100 +"MB";
+					}
+                    return  Math.round(res.Size/1024*100)/100 +"KB";
+			    }}
+                ,{field:'LastModified', title:'创建时间',width:180,templet:function(row){
+                    return DataUtils.format(new Date(parseInt(row.LastModified)),"yyyy-MM-dd hh:mm:ss")
+                 } }
+                ,{fixed: 'right', title:'操作',width:120, templet: function(res){
+                    return '<button class="layui-btn layui-btn-xs " onclick="download(\''+res.Id+'\')">下载</button>' 
+                }}
+            ]]
+            ,page: {
+				limit:15,
+				limits:[15],
+				count:data.count,
+				curr:data.pageNum,
+				jump: function(obj, first){
+					//首次不执行
+					if(!first){
+					  loadAllfile(obj.curr);
+					}
+				}
+			} 
+            ,toolbar: '#allFileToolBar'
+            ,defaultToolbar:[]
+        });
+    }
+</script>
+<script type="text/html" id="allFileToolBar">
+    <a class="layui-btn  layui-btn-sm" lay-event="download" >下载</a>
+	<a class="layui-btn  layui-btn-sm" onclick="refresh()">刷新</a>
+</script>
+
+<script type="text/html" id="downLoadingToolBar">
+    <a class="layui-btn  layui-btn-sm" lay-event="pause">暂停</a>
+	<a class="layui-btn  layui-btn-sm" lay-event="start">继续下载</a>
+    <a class="layui-btn layui-btn-danger  layui-btn-sm" lay-event="delete">删除</a>
+</script>
+
+<script type="text/html" id="transferDoneToolBar"> 
+    <a class="layui-btn  layui-btn-sm" lay-event="delete">删除</a>
+</script>
+
+</body>
+
+</html>
